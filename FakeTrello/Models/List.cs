@@ -9,10 +9,10 @@ namespace FakeTrello.Models
     public class List
     {
         [Key]
-        public int KeyId { get; set; }
+        public int ListId { get; set; }
 
         public string Name { get; set; }
 
-        public List<Card> Cards { get; set; } // 1 to many (boards) relationship
+        public List<Card> Cards { get; set; } // 1 to many (card) relationship
     }
 }

@@ -15,6 +15,6 @@ namespace FakeTrello.Models
 
         public string URL { get; set; }
 
-        public List<List> Lists { get; set; } // 1 to many (boards) relationship
+        public List<List> Lists { get; set; } // 1 to many (list) relationship
     }
 }

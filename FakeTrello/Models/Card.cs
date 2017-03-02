@@ -13,7 +13,7 @@ namespace FakeTrello.Models
 
         public string Name { get; set; }
 
-        public List<Contributor> Contributors { get; set; } // 1 to many (boards) relationship
+        //public List<Contributor> Contributors { get; set; } // 1 to many (boards) relationship
 
 
     }
