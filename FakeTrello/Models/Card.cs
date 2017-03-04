@@ -11,10 +11,9 @@ namespace FakeTrello.Models
         [Key]
         public int CardId { get; set; }
 
-        public string Name { get; set; }
+        public string Title { get; set; }
 
-        //public List<Contributor> Contributors { get; set; } // 1 to many (boards) relationship
-
+        public string Description { get; set; }
 
     }
 }
