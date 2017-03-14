@@ -45,7 +45,7 @@ namespace FakeTrello.Tests.DAL
         [TestMethod]
         public void EnsureICanCreateInstanceofRepo()
         {
-            FakeTrelloRepository repo = new FakeTrelloRepository();
+            //FakeTrelloRepository repo = new FakeTrelloRepository();
 
             Assert.IsNotNull(repo);
         }
@@ -54,7 +54,7 @@ namespace FakeTrello.Tests.DAL
         [TestMethod]
         public void EnsureIHaveNotNullContext()
         {
-            FakeTrelloRepository repo = new FakeTrelloRepository();
+            //FakeTrelloRepository repo = new FakeTrelloRepository();
 
             Assert.IsNotNull(repo.Context);
         }
