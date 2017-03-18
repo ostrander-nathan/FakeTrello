@@ -47,6 +47,7 @@ namespace FakeTrello.Tests.DAL
             mock_boards_set.Setup(b => b.Remove(It.IsAny<Board>())).Callback((Board board) => fake_board_table.Remove(board));
 
             fake_context.Setup(c => c.Boards).Returns(mock_boards_set.Object); // Context.Boards returns fake_board_table (a list)
+            fake_context.Setup(c => c.SaveChanges()).Returns(0).Verifiable();
         }
 
         [TestMethod]
@@ -159,6 +160,24 @@ namespace FakeTrello.Tests.DAL
             // Assert
             Assert.AreEqual(expected_board_count, actual_board_count);
 
+        }
+        [TestMethod]
+        public void EnsureICanEditBoardName()
+        {
+            // Arrange
+            fake_board_table.Add(new Board { BoardId = 1, Name = "My Board", Owner = sally });
+            fake_board_table.Add(new Board { BoardId = 2, Name = "My Board", Owner = sally });
+            fake_board_table.Add(new Board { BoardId = 3, Name = "My Board", Owner = sammy });
+            CreateFakeDatabase();
+
+            //Act
+            string expected_board_name = "My New Board";
+            repo.EditBoardName(1, expected_board_name);
+            string actual_board_name = repo.GetBoard(1).Name;
+
+            //Assert
+            Assert.AreEqual(expected_board_name, actual_board_name);
+            fake_context.Verify(c => c.SaveChanges(), Times.Once());
         }
     }
 }

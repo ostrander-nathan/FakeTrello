@@ -123,7 +123,6 @@ namespace FakeTrello.DAL
             {
                 Context.Boards.Remove(found_board);
                 Context.SaveChanges();
-                return true;
             }
             return false;
             
@@ -137,6 +136,17 @@ namespace FakeTrello.DAL
         public bool RemoveList(int listId)
         {
             throw new NotImplementedException();
+        }
+
+        public void EditBoardName(int boardId, string newName)
+        {
+            Board found_board = GetBoard(boardId);
+            if (found_board != null)
+            {
+                found_board.Name = newName;
+                Context.SaveChanges();
+            }
+            //False Positive: SaveChanges is missing
         }
     }
 }
