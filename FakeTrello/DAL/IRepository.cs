@@ -1,9 +1,5 @@
-﻿using FakeTrello.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using FakeTrello.Models;
 
 namespace FakeTrello.DAL
 {
@@ -25,7 +21,7 @@ namespace FakeTrello.DAL
         List<List> GetListsFromBoard(int boardId); // List of Trello Lists
         List<Board> GetBoardsFromUser(string userId);
         Board GetBoard(int boardId);
-        List<ApplicationUser> GetCardAttendees(int cardId); 
+        List<ApplicationUser> GetCardAttendees(int cardId);
 
         // Update
         bool AttachUser(string userId, int cardId); // true: successful, false: not successful

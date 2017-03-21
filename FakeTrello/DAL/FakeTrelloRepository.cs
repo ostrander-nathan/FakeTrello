@@ -3,31 +3,58 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using FakeTrello.Models;
+using System.Data.Common;
+using System.Data.SqlClient;
+using System.Configuration;
+using System.Data;
+using System.Diagnostics;
 
 namespace FakeTrello.DAL
 {
     public class FakeTrelloRepository : IRepository
     {
+        SqlConnection _trelloConnection;
+        //public FakeTrelloContext Context { get; set; }
 
-        public FakeTrelloContext Context { get; set; }
         //private FakeTrelloContext context; // Data member
 
-        public FakeTrelloRepository()
+        public FakeTrelloRepository() /// Default Constructor
         {
-            Context = new FakeTrelloContext();
+            _trelloConnection = new SqlConnection(ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString);
+            //Context = new FakeTrelloContext();
+            //Context.Database.
         }
-
-        public FakeTrelloRepository(FakeTrelloContext context)
-        {
-            Context = context;
-        }
-
 
         public void AddBoard(string name, ApplicationUser owner)
         {
-            Board board = new Board { Name = name, Owner = owner };
-            Context.Boards.Add(board);
-            Context.SaveChanges();
+            //Board board = new Board { Name = name, Owner = owner };
+            //Context.Boards.Add(board);
+            //Context.SaveChanges();
+
+              _trelloConnection.Open();
+            try
+            {
+
+                var addBoardCommand = _trelloConnection.CreateCommand();
+                addBoardCommand.CommandText = "Insert into Boards(Name, Owner_Id)values(@name, @ownerOd)";
+                var nameParameter = new SqlParameter("name", SqlDbType.VarChar);
+                nameParameter.Value = name;
+                addBoardCommand.Parameters.Add(nameParameter);
+                var ownerParameter = new SqlParameter("owner", SqlDbType.Int);
+                ownerParameter.Value = owner.Id;
+                addBoardCommand.Parameters.Add(nameParameter);
+
+                addBoardCommand.ExecuteNonQuery();
+            }
+            catch(SqlException ex)
+            {
+                Debug.WriteLine(ex.Message);
+                Debug.WriteLine(ex.StackTrace);
+            }
+            finally
+            {
+                _trelloConnection.Close();
+            }
         }
 
         public void AddCard(string name, int listId, string ownerId)
@@ -62,9 +89,44 @@ namespace FakeTrello.DAL
 
         public Board GetBoard(int boardId)
         {
-            // SELECT * FROM Boards WHERE BoardId == boardId 
-            Board found_board = Context.Boards.FirstOrDefault(b => b.BoardId == boardId); // returns null if nothing is found
-            return found_board;
+            // SELECT * FROM Boards WHERE BoardId = boardId 
+
+            _trelloConnection.Open();
+
+            try
+            {
+                var getBoardCommand = _trelloConnection.CreateCommand();
+                getBoardCommand.CommandText = @"
+                    SELECT boardId,Name, Url, Owner_Id 
+                    FROM Boards 
+                    WHERE BoardId = boardId = @boardId";
+                var boardIdParam = new SqlParameter("boardId", SqlDbType.Int);
+                boardIdParam.Value = boardId;
+
+                getBoardCommand.Parameters.Add(boardIdParam);
+
+                var reader = getBoardCommand.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    var board = new Board()
+                    {
+                        BoardId = reader.GetInt32(0),
+                        Name = reader.GetString(1),
+                        URL = reader.GetString(2),
+                        Owner = new ApplicationUser { Id = reader.GetString(3) }
+                    };
+                    return board;
+                 }
+          }
+        finally
+        {
+            _trelloConnection.Close();
+        }
+        return null;
+
+            //Board found_board = Context.Boards.FirstOrDefault(b => b.BoardId == boardId); // returns null if nothing is found
+            //return found_board;
 
             /* Using .First() throws an exception if nothing is found
              * try {
@@ -78,7 +140,44 @@ namespace FakeTrello.DAL
 
         public List<Board> GetBoardsFromUser(string userId)
         {
-            return Context.Boards.Where(b => b.Owner.Id == userId).ToList();
+            _trelloConnection.Open();
+
+            try
+            {
+                var getBoardCommand = _trelloConnection.CreateCommand();
+                getBoardCommand.CommandText = @"
+                    SELECT boardId,Name, Url, Owner_Id 
+                    FROM Boards 
+                    WHERE OwnerId =  @userId";
+                var boardIdParam = new SqlParameter("userId", SqlDbType.VarChar);
+                boardIdParam.Value = userId;
+
+                getBoardCommand.Parameters.Add(boardIdParam);
+
+                var reader = getBoardCommand.ExecuteReader();
+
+
+                var boards = new List<Board>();
+                while (reader.Read())
+                {
+                    var board = new Board()
+                    {
+                        BoardId = reader.GetInt32(0),
+                        Name = reader.GetString(1),
+                        URL = reader.GetString(2),
+                        Owner = new ApplicationUser { Id = reader.GetString(3) }
+                    };
+
+                    boards.Add(board);
+                }
+                return boards;
+            }
+            catch(Exception ex) { }
+            finally
+            {
+                _trelloConnection.Close();
+            }
+            return new List<Board>();
         }
 
         public Card GetCard(int cardId)
@@ -118,14 +217,33 @@ namespace FakeTrello.DAL
 
         public bool RemoveBoard(int boardId)
         {
-            Board found_board = GetBoard(boardId);
-            if (found_board != null)
+            _trelloConnection.Open();
+
+            try
             {
-                Context.Boards.Remove(found_board);
-                Context.SaveChanges();
+                var removeBoardCommand = _trelloConnection.CreateCommand();
+                removeBoardCommand.CommandText = @"
+                    DELETE 
+                    FROM Boards 
+                    WHERE BoardId =  @boardId";
+
+                var boardIdParameter = new SqlParameter("boardId", SqlDbType.Int);
+                boardIdParameter.Value = boardId;
+
+                removeBoardCommand.Parameters.Add(boardIdParameter);
+                removeBoardCommand.ExecuteNonQuery();
+
+                var reader = removeBoardCommand.ExecuteReader();
+
+                return true;
+       
+            }
+            catch (Exception ex) { }
+            finally
+            {
+                _trelloConnection.Close();
             }
             return false;
-            
         }
 
         public bool RemoveCard(int cardId)
@@ -140,13 +258,33 @@ namespace FakeTrello.DAL
 
         public void EditBoardName(int boardId, string newName)
         {
-            Board found_board = GetBoard(boardId);
-            if (found_board != null)
+            _trelloConnection.Open();
+            try
             {
-                found_board.Name = newName;
-                Context.SaveChanges();
+
+                var updateBoardCommand = _trelloConnection.CreateCommand();
+                updateBoardCommand.CommandText = @"
+                    Update Boards
+                    Set Name = @name
+                    Where boardid = @boardId"; 
+                var nameParameter = new SqlParameter("name", SqlDbType.VarChar);
+                nameParameter.Value = newName;
+                updateBoardCommand.Parameters.Add(nameParameter);
+                var boardIdParameter = new SqlParameter("boardId", SqlDbType.Int);
+                boardIdParameter.Value = boardId;
+                updateBoardCommand.Parameters.Add(boardIdParameter);
+
+                updateBoardCommand.ExecuteNonQuery();
             }
-            //False Positive: SaveChanges is missing
+            catch (SqlException ex)
+            {
+                Debug.WriteLine(ex.Message);
+                Debug.WriteLine(ex.StackTrace);
+            }
+            finally
+            {
+                _trelloConnection.Close();
+            }
         }
     }
 }
