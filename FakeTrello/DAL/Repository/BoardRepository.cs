@@ -1,40 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-using FakeTrello.Models;
-using System.Data.Common;
-using System.Data.SqlClient;
 using System.Configuration;
 using System.Data;
+using System.Data.SqlClient;
 using System.Diagnostics;
+using FakeTrello.Models;
+using FakeTrello.Controllers.Contracts;
 
-namespace FakeTrello.DAL
+namespace FakeTrello.DAL.Repository
 {
-    public class FakeTrelloRepository : IRepository
+    public class BoardRepository : IBoardManager, IBoardQuery
+
     {
-        SqlConnection _trelloConnection;
-        //public FakeTrelloContext Context { get; set; }
+        IDbConnection _trelloConnection;
 
-        //private FakeTrelloContext context; // Data member
-
-        public FakeTrelloRepository() /// Default Constructor
+        public BoardRepository(IDbConnection trelloConnection)
         {
-            _trelloConnection = new SqlConnection(ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString);
-            //Context = new FakeTrelloContext();
-            //Context.Database.
+            _trelloConnection = trelloConnection;
+           // _trelloConnection = new SqlConnection(ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString);
         }
+
 
         public void AddBoard(string name, ApplicationUser owner)
         {
-            //Board board = new Board { Name = name, Owner = owner };
-            //Context.Boards.Add(board);
-            //Context.SaveChanges();
 
-              _trelloConnection.Open();
+            _trelloConnection.Open();
             try
             {
-
                 var addBoardCommand = _trelloConnection.CreateCommand();
                 addBoardCommand.CommandText = "Insert into Boards(Name, Owner_Id)values(@name, @ownerOd)";
                 var nameParameter = new SqlParameter("name", SqlDbType.VarChar);
@@ -46,7 +38,7 @@ namespace FakeTrello.DAL
 
                 addBoardCommand.ExecuteNonQuery();
             }
-            catch(SqlException ex)
+            catch (SqlException ex)
             {
                 Debug.WriteLine(ex.Message);
                 Debug.WriteLine(ex.StackTrace);
@@ -55,36 +47,6 @@ namespace FakeTrello.DAL
             {
                 _trelloConnection.Close();
             }
-        }
-
-        public void AddCard(string name, int listId, string ownerId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void AddCard(string name, List list, ApplicationUser owner)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void AddList(string name, int boardId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void AddList(string name, Board board)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool AttachUser(string userId, int cardId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool CopyCard(int cardId, int newListId, string newOwnerId)
-        {
-            throw new NotImplementedException();
         }
 
         public Board GetBoard(int boardId)
@@ -109,33 +71,21 @@ namespace FakeTrello.DAL
 
                 if (reader.Read())
                 {
-                    var board = new Board()
+                    var board = new Board
                     {
                         BoardId = reader.GetInt32(0),
                         Name = reader.GetString(1),
                         URL = reader.GetString(2),
-                        Owner = new ApplicationUser { Id = reader.GetString(3) }
+                        Owner = new ApplicationUser {Id = reader.GetString(3)}
                     };
                     return board;
-                 }
-          }
-        finally
-        {
-            _trelloConnection.Close();
-        }
-        return null;
-
-            //Board found_board = Context.Boards.FirstOrDefault(b => b.BoardId == boardId); // returns null if nothing is found
-            //return found_board;
-
-            /* Using .First() throws an exception if nothing is found
-             * try {
-             * Board found_board = Context.Boards.First(b => b.BoardId == boardId); 
-             * return found_board;
-             * } catch(Exception e) {
-             * return null;
-             * }
-             */
+                }
+            }
+            finally
+            {
+                _trelloConnection.Close();
+            }
+            return null;
         }
 
         public List<Board> GetBoardsFromUser(string userId)
@@ -160,59 +110,26 @@ namespace FakeTrello.DAL
                 var boards = new List<Board>();
                 while (reader.Read())
                 {
-                    var board = new Board()
+                    var board = new Board
                     {
                         BoardId = reader.GetInt32(0),
                         Name = reader.GetString(1),
                         URL = reader.GetString(2),
-                        Owner = new ApplicationUser { Id = reader.GetString(3) }
+                        Owner = new ApplicationUser {Id = reader.GetString(3)}
                     };
 
                     boards.Add(board);
                 }
                 return boards;
             }
-            catch(Exception ex) { }
+            catch (Exception ex)
+            {
+            }
             finally
             {
                 _trelloConnection.Close();
             }
             return new List<Board>();
-        }
-
-        public Card GetCard(int cardId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public List<ApplicationUser> GetCardAttendees(int cardId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public List<Card> GetCardsFromBoard(int boardId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public List<Card> GetCardsFromList(int listId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public List GetList(int listId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public List<List> GetListsFromBoard(int boardId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool MoveCard(int cardId, int oldListId, int newListId)
-        {
-            throw new NotImplementedException();
         }
 
         public bool RemoveBoard(int boardId)
@@ -236,9 +153,10 @@ namespace FakeTrello.DAL
                 var reader = removeBoardCommand.ExecuteReader();
 
                 return true;
-       
             }
-            catch (Exception ex) { }
+            catch (Exception ex)
+            {
+            }
             finally
             {
                 _trelloConnection.Close();
@@ -246,27 +164,16 @@ namespace FakeTrello.DAL
             return false;
         }
 
-        public bool RemoveCard(int cardId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool RemoveList(int listId)
-        {
-            throw new NotImplementedException();
-        }
-
         public void EditBoardName(int boardId, string newName)
         {
             _trelloConnection.Open();
             try
             {
-
                 var updateBoardCommand = _trelloConnection.CreateCommand();
                 updateBoardCommand.CommandText = @"
                     Update Boards
                     Set Name = @name
-                    Where boardid = @boardId"; 
+                    Where boardid = @boardId";
                 var nameParameter = new SqlParameter("name", SqlDbType.VarChar);
                 nameParameter.Value = newName;
                 updateBoardCommand.Parameters.Add(nameParameter);
